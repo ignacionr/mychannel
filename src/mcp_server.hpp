@@ -31,13 +31,10 @@ private:
     // Helper methods
     std::string create_error_response(const std::string& error_msg);
     std::string create_success_response(const std::string& result);
-    glz::json_t parse_json(const std::string& json);
-    std::map<std::string, std::string> extract_mcp_params(const std::string& json);
     
     // MCP JSON-RPC 2.0 protocol methods
     std::string handle_mcp_initialize(const std::string& id);
     std::string handle_mcp_tools_list(const std::string& id);
-    std::string handle_mcp_tool_call(const std::string& id, const glz::json_t& request);
     std::string create_mcp_error_response(const std::string& id, int code, const std::string& message);
 
 public:
@@ -45,4 +42,9 @@ public:
     void setup_mcp_routes();
     std::vector<MCPTool> get_available_tools() const;
     std::string get_tools_schema() const;
+    
+    // Public methods for testing
+    glz::json_t parse_json(const std::string& json);
+    std::map<std::string, std::string> extract_mcp_params(const std::string& json);
+    std::string handle_mcp_tool_call(const std::string& id, const glz::json_t& request);
 };

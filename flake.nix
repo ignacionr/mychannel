@@ -28,6 +28,7 @@
             pkgs.yt-dlp
             pkgs.httplib
             pkgs.glaze
+            pkgs.gtest
           ];
           
           configurePhase = ''
@@ -52,6 +53,7 @@
             pkgs.yt-dlp
             pkgs.httplib
             pkgs.glaze
+            pkgs.gtest
           ];
           shellHook = ''
             # Only set these if they're not already defined

@@ -32,8 +32,40 @@ add_executable(mychannel ${SOURCES})
 find_package(Threads REQUIRED)
 target_link_libraries(mychannel Threads::Threads)
 
+# Find Google Test
+find_package(GTest REQUIRED)
+enable_testing()
+
 # Ensure debug symbols are included
 target_compile_options(mychannel PRIVATE 
     $<$<CONFIG:Debug>:-g -O0>
     $<$<CONFIG:Release>:-O3>
 )
+
+# Test sources (excluding main.cpp)
+set(TEST_SOURCES
+    src/utils.cpp
+    src/media_queue.cpp
+    src/media_info.cpp
+    src/streaming.cpp
+    src/http_server.cpp
+    src/mcp_server.cpp
+)
+
+# Create test executable
+add_executable(mychannel_tests
+    tests/test_mcp_json_parsing.cpp
+    tests/test_mcp_tools_call.cpp
+    tests/test_mcp_debug.cpp
+    tests/test_main.cpp
+    ${TEST_SOURCES}
+)
+
+target_link_libraries(mychannel_tests 
+    Threads::Threads 
+    GTest::gtest 
+    GTest::gtest_main
+)
+
+# Add test
+add_test(NAME MCPJsonParsingTests COMMAND mychannel_tests)
