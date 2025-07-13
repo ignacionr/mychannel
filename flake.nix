@@ -16,7 +16,18 @@
           buildInputs = [
             pkgs.cmake
             pkgs.gcc
+            pkgs.ffmpeg
+            pkgs.yt-dlp
           ];
+          shellHook = ''
+            # Only set these if they're not already defined
+            if [ -z "$YOUTUBE_RTMP_URL" ]; then
+              echo "Warning: YOUTUBE_RTMP_URL is not set. Please set it in your shell environment."
+            fi
+            if [ -z "$YOUTUBE_STREAM_KEY" ]; then
+              echo "Warning: YOUTUBE_STREAM_KEY is not set. Please set it in your shell environment."
+            fi
+          '';
         };
       });
 }
