@@ -1,0 +1,21 @@
+[Unit]
+Description=MyChannel Deployment Webhook Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/mychannel-deploy
+ExecStart=/usr/bin/python3 /opt/mychannel-deploy/webhook-server.py
+Restart=always
+RestartSec=10
+Environment=WEBHOOK_SECRET=your-webhook-secret-here
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mychannel-deploy /opt/mychannel /tmp
+
+[Install]
+WantedBy=multi-user.target
