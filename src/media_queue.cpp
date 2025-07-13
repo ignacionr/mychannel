@@ -2,7 +2,12 @@
 
 void ThreadSafeMediaQueue::push(const std::string& item) {
     std::lock_guard<std::mutex> lock(mutex_);
-    queue_.push(item);
+    queue_.push_back(item);
+}
+
+void ThreadSafeMediaQueue::push_front(const std::string& item) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    queue_.push_front(item);
 }
 
 bool ThreadSafeMediaQueue::pop(std::string& item) {
@@ -11,13 +16,13 @@ bool ThreadSafeMediaQueue::pop(std::string& item) {
         return false;
     }
     item = queue_.front();
-    queue_.pop();
+    queue_.pop_front();
     return true;
 }
 
 void ThreadSafeMediaQueue::push_back(const std::string& item) {
     std::lock_guard<std::mutex> lock(mutex_);
-    queue_.push(item);
+    queue_.push_back(item);
 }
 
 size_t ThreadSafeMediaQueue::size() const {
@@ -33,17 +38,13 @@ bool ThreadSafeMediaQueue::empty() const {
 std::vector<std::string> ThreadSafeMediaQueue::get_all_items() const {
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<std::string> items;
-    std::queue<std::string> temp_queue = queue_;
-    while (!temp_queue.empty()) {
-        items.push_back(temp_queue.front());
-        temp_queue.pop();
+    for (const auto& item : queue_) {
+        items.push_back(item);
     }
     return items;
 }
 
 void ThreadSafeMediaQueue::clear() {
     std::lock_guard<std::mutex> lock(mutex_);
-    while (!queue_.empty()) {
-        queue_.pop();
-    }
+    queue_.clear();
 }

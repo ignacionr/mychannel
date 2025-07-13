@@ -32,7 +32,7 @@
             margin-top: 0;
             color: #555;
         }
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             width: 70%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -55,6 +55,12 @@
         }
         button.danger:hover {
             background-color: #c82333;
+        }
+        button.priority {
+            background-color: #ff6b35;
+        }
+        button.priority:hover {
+            background-color: #e55a2b;
         }
         #queue-list {
             list-style-type: none;
@@ -89,7 +95,14 @@
         <h1>🎥 MyChannel Queue Manager</h1>
         
         <div class="section">
-            <h2>📊 Server Status</h2>
+            <h2>� Authentication</h2>
+            <input type="password" id="auth-token" placeholder="Enter authentication token (if required)">
+            <button onclick="testAuth()">Test Authentication</button>
+            <div id="auth-status"></div>
+        </div>
+
+        <div class="section">
+            <h2>�📊 Server Status</h2>
             <button onclick="checkStatus()">Check Status</button>
             <div id="server-status"></div>
         </div>
@@ -107,6 +120,15 @@
         </div>
 
         <div class="section">
+            <h2>🚨 Add High Priority (Interrupts Current Stream)</h2>
+            <input type="text" id="priority-item" placeholder="Enter YouTube URL or local file path">
+            <button class="priority" onclick="addPriorityToQueue()">Add Priority Item</button>
+            <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                ⚠️ This will immediately interrupt the current stream and play this content next.
+            </p>
+        </div>
+
+        <div class="section">
             <h2>🗑️ Queue Management</h2>
             <button class="danger" onclick="clearQueue()">Clear Queue</button>
         </div>
@@ -117,6 +139,23 @@
     <script>
         const API_BASE = 'http://localhost:8080';
 
+        function getAuthToken() {
+            return document.getElementById('auth-token').value.trim();
+        }
+
+        function getAuthHeaders() {
+            const token = getAuthToken();
+            if (token) {
+                return { 'Authorization': `Bearer ${token}` };
+            }
+            return {};
+        }
+
+        function getAuthParam() {
+            const token = getAuthToken();
+            return token ? `&token=${encodeURIComponent(token)}` : '';
+        }
+
         function showStatus(message, isError = false) {
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
@@ -125,6 +164,37 @@
                 statusDiv.textContent = '';
                 statusDiv.className = '';
             }, 3000);
+        }
+
+        async function testAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                document.getElementById('auth-status').innerHTML = 
+                    '<div class="error">⚠️ No token provided</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/queue/clear`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.status === 401) {
+                    document.getElementById('auth-status').innerHTML = 
+                        '<div class="error">❌ Invalid token</div>';
+                } else if (response.status === 200) {
+                    document.getElementById('auth-status').innerHTML = 
+                        '<div class="success">✅ Token is valid</div>';
+                    // Don't actually clear the queue, just test auth
+                } else {
+                    document.getElementById('auth-status').innerHTML = 
+                        '<div class="error">⚠️ Unexpected response</div>';
+                }
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = 
+                    '<div class="error">❌ Server error</div>';
+            }
         }
 
         async function checkStatus() {
@@ -171,10 +241,16 @@
             try {
                 const isUrl = item.startsWith('http');
                 const param = isUrl ? 'url' : 'path';
-                const response = await fetch(`${API_BASE}/queue/add?${param}=${encodeURIComponent(item)}`, {
-                    method: 'POST'
+                const response = await fetch(`${API_BASE}/queue/add?${param}=${encodeURIComponent(item)}${getAuthParam()}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
                 });
                 const data = await response.json();
+                
+                if (response.status === 401) {
+                    showStatus('Authentication required - please enter token', true);
+                    return;
+                }
                 
                 if (data.status === 'success') {
                     showStatus(`Added: ${item}`);
@@ -188,16 +264,59 @@
             }
         }
 
+        async function addPriorityToQueue() {
+            const item = document.getElementById('priority-item').value.trim();
+            if (!item) {
+                showStatus('Please enter a URL or file path', true);
+                return;
+            }
+
+            if (!confirm('This will interrupt the current stream. Are you sure?')) {
+                return;
+            }
+
+            try {
+                const isUrl = item.startsWith('http');
+                const param = isUrl ? 'url' : 'path';
+                const response = await fetch(`${API_BASE}/queue/priority?${param}=${encodeURIComponent(item)}${getAuthParam()}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    showStatus('Authentication required - please enter token', true);
+                    return;
+                }
+                
+                if (data.status === 'success') {
+                    showStatus(`🚨 Priority added: ${item} (Stream interrupted)`);
+                    document.getElementById('priority-item').value = '';
+                    loadQueue(); // Refresh the queue
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (error) {
+                showStatus('Failed to add priority item', true);
+            }
+        }
+
         async function clearQueue() {
             if (!confirm('Are you sure you want to clear the entire queue?')) {
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/queue/clear`, {
-                    method: 'POST'
+                const response = await fetch(`${API_BASE}/queue/clear?${getAuthParam().substring(1)}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
                 });
                 const data = await response.json();
+                
+                if (response.status === 401) {
+                    showStatus('Authentication required - please enter token', true);
+                    return;
+                }
                 
                 if (data.status === 'success') {
                     showStatus('Queue cleared');
@@ -220,6 +339,13 @@
         document.getElementById('new-item').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 addToQueue();
+            }
+        });
+
+        // Allow Enter key to add priority items
+        document.getElementById('priority-item').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addPriorityToQueue();
             }
         });
     </script>

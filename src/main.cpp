@@ -65,21 +65,37 @@ int main() {
         }
 
         // Start async streaming
+        g_stream_process->reset(); // Reset termination flag
         current_push_future = push_to_youtube_async(current_video_path, rtmp_url, stream_key);
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        // Simulate playback timing
+        // Simulate playback timing with interruption checking
         for (int j = 0; j < static_cast<int>(duration); ++j) {
+            // Check if stream should be interrupted
+            if (g_stream_process->should_terminate()) {
+                std::cout << "🔄 Stream interrupted for high-priority content" << std::endl;
+                break;
+            }
+            
             std::cout << "Playing " << current_video_path << " - " << (j + 1) << " of " << static_cast<int>(duration) << " seconds" << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         
-        // Handle fractional duration
-        if (duration - static_cast<int>(duration) > 0.0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>((duration - static_cast<int>(duration)) * 1000)));
+        // Check for interruption before handling fractional duration
+        if (!g_stream_process->should_terminate()) {
+            // Handle fractional duration
+            if (duration - static_cast<int>(duration) > 0.0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>((duration - static_cast<int>(duration)) * 1000)));
+            }
         }
         
         std::cout << "Finished playing " << current_video_path << std::endl;
+        
+        // Wait for the streaming future to complete before continuing
+        if (current_push_future.valid()) {
+            current_push_future.wait();
+        }
+        
         std::cout << "----------------------------------------" << std::endl;
     }
 

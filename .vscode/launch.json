@@ -17,6 +17,10 @@
                 {
                     "name": "YOUTUBE_STREAM_KEY",
                     "value": "${env:YOUTUBE_STREAM_KEY}"
+                },
+                {
+                    "name": "MYCHANNEL_AUTH_TOKEN",
+                    "value": "${env:MYCHANNEL_AUTH_TOKEN}"
                 }
             ],
             "externalConsole": false,
@@ -47,6 +51,10 @@
                 {
                     "name": "YOUTUBE_STREAM_KEY",
                     "value": "${env:YOUTUBE_STREAM_KEY}"
+                },
+                {
+                    "name": "MYCHANNEL_AUTH_TOKEN",
+                    "value": "${env:MYCHANNEL_AUTH_TOKEN}"
                 }
             ],
             "externalConsole": false,
@@ -69,6 +77,10 @@
                 {
                     "name": "YOUTUBE_STREAM_KEY",
                     "value": "test_stream_key"
+                },
+                {
+                    "name": "MYCHANNEL_AUTH_TOKEN",
+                    "value": "test_token_123"
                 }
             ],
             "externalConsole": false,
@@ -97,6 +109,10 @@
                 {
                     "name": "YOUTUBE_STREAM_KEY",
                     "value": "${env:YOUTUBE_STREAM_KEY}"
+                },
+                {
+                    "name": "MYCHANNEL_AUTH_TOKEN",
+                    "value": "${env:MYCHANNEL_AUTH_TOKEN}"
                 }
             ],
             "externalConsole": true,
