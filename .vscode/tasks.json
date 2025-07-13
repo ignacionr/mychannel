@@ -54,29 +54,6 @@
             "dependsOn": "CMake: Configure"
         },
         {
-            "label": "CMake: Build Debug",
-            "type": "shell",
-            "command": "nix",
-            "args": [
-                "develop",
-                "-c",
-                "sh",
-                "-c",
-                "cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "Build the project with debug symbols in Nix environment"
-        },
-        {
             "label": "CMake: Clean",
             "type": "shell",
             "command": "nix",
@@ -120,12 +97,29 @@
             "dependsOn": "CMake: Build"
         },
         {
-            "label": "Build and Run",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "CMake: Build",
-                "Run MyChannel"
+            "label": "Nix Build",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "build"
             ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build the project using nix build (flake-based build)"
+        },
+        {
+            "label": "Run MyChannel (Nix Built)",
+            "type": "shell",
+            "command": "./result/bin/mychannel",
+            "args": [],
             "group": "test",
             "presentation": {
                 "echo": true,
@@ -134,75 +128,8 @@
                 "panel": "shared"
             },
             "problemMatcher": [],
-            "detail": "Build and then run the mychannel application"
-        },
-        {
-            "label": "Check Environment Variables",
-            "type": "shell",
-            "command": "nix",
-            "args": [
-                "develop",
-                "-c",
-                "bash",
-                "-c",
-                "echo 'YOUTUBE_RTMP_URL: '$YOUTUBE_RTMP_URL && echo 'YOUTUBE_STREAM_KEY: '${YOUTUBE_STREAM_KEY:0:10}..."
-            ],
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Check if required environment variables are set in Nix environment"
-        },
-        {
-            "label": "Check Video Files",
-            "type": "shell",
-            "command": "nix",
-            "args": [
-                "develop",
-                "-c",
-                "ls",
-                "-la",
-                "videos/"
-            ],
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "List video files in the videos directory"
-        },
-        {
-            "label": "Test Video Duration",
-            "type": "shell",
-            "command": "nix",
-            "args": [
-                "develop",
-                "-c",
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                "videos/video1_5s.webm"
-            ],
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Test ffprobe functionality with a sample video in Nix environment"
+            "detail": "Run the nix-built mychannel application",
+            "dependsOn": "Nix Build"
         }
     ]
 }

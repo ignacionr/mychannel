@@ -55,6 +55,41 @@ MCPServer::MCPServer(HttpServer& server) : http_server_(server) {
 }
 
 void MCPServer::setup_mcp_routes() {
+    // MCP JSON-RPC 2.0 endpoint
+    http_server_.server_.Post("/", [this](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Content-Type", "application/json");
+        
+        try {
+            // Parse JSON-RPC request
+            auto json_request = parse_json_params(req.body);
+            
+            std::string method = json_request["method"];
+            std::string id = json_request["id"];
+            
+            std::string response;
+            
+            if (method == "initialize") {
+                response = handle_mcp_initialize(id);
+            } else if (method == "tools/list") {
+                response = handle_mcp_tools_list(id);
+            } else if (method == "tools/call") {
+                if (!http_server_.is_authenticated(req)) {
+                    response = create_mcp_error_response(id, -32001, "Authentication required");
+                } else {
+                    response = handle_mcp_tool_call(id, json_request);
+                }
+            } else {
+                response = create_mcp_error_response(id, -32601, "Method not found");
+            }
+            
+            res.set_content(response, "application/json");
+        } catch (const std::exception& e) {
+            std::string error_response = create_mcp_error_response("null", -32700, "Parse error");
+            res.set_content(error_response, "application/json");
+        }
+    });
+
+    // Legacy endpoints for backward compatibility
     // MCP endpoint for tool discovery
     http_server_.server_.Get("/mcp/tools", [this](const httplib::Request&, httplib::Response& res) {
         std::string json_response = get_tools_schema();
@@ -284,6 +319,61 @@ std::string MCPServer::handle_validate_video_source(const std::string& full_requ
     } catch (const std::exception& e) {
         return create_error_response("Failed to validate source: " + std::string(e.what()));
     }
+}
+
+// MCP JSON-RPC 2.0 protocol implementations
+std::string MCPServer::handle_mcp_initialize(const std::string& id) {
+    return R"({"jsonrpc":"2.0","id":")" + id + R"(","result":{"protocolVersion":"2024-11-05","capabilities":{"tools":{},"resources":{},"prompts":{},"logging":{}},"serverInfo":{"name":"mychannel","version":"1.0.0"}}})";
+}
+
+std::string MCPServer::handle_mcp_tools_list(const std::string& id) {
+    std::ostringstream oss;
+    oss << R"({"jsonrpc":"2.0","id":")" << id << R"(","result":{"tools":[)";
+    
+    for (size_t i = 0; i < tools_.size(); ++i) {
+        oss << R"({"name":")" << tools_[i].name << R"(",)";
+        oss << R"("description":")" << tools_[i].description << R"(",)";
+        oss << R"("inputSchema":)" << tools_[i].input_schema << "}";
+        if (i < tools_.size() - 1) oss << ",";
+    }
+    
+    oss << "]}}";
+    return oss.str();
+}
+
+std::string MCPServer::handle_mcp_tool_call(const std::string& id, const std::map<std::string, std::string>& request) {
+    // Extract tool name and arguments from MCP request
+    std::string tool_name = request.at("params.name");
+    std::string params_json = request.at("params.arguments");
+    
+    std::string result;
+    
+    // Route to appropriate tool handler
+    if (tool_name == "add_video_to_queue") {
+        result = handle_add_video_to_queue(params_json);
+    } else if (tool_name == "add_priority_video") {
+        result = handle_add_priority_video(params_json);
+    } else if (tool_name == "get_streaming_queue") {
+        result = handle_get_streaming_queue(params_json);
+    } else if (tool_name == "clear_streaming_queue") {
+        result = handle_clear_streaming_queue(params_json);
+    } else if (tool_name == "get_stream_status") {
+        result = handle_get_stream_status(params_json);
+    } else if (tool_name == "interrupt_current_stream") {
+        result = handle_interrupt_current_stream(params_json);
+    } else if (tool_name == "get_video_duration") {
+        result = handle_get_video_duration(params_json);
+    } else if (tool_name == "validate_video_source") {
+        result = handle_validate_video_source(params_json);
+    } else {
+        return create_mcp_error_response(id, -32601, "Tool not found: " + tool_name);
+    }
+    
+    return R"({"jsonrpc":"2.0","id":")" + id + R"(","result":{"content":[{"type":"text","text":)" + result + "}]}}";
+}
+
+std::string MCPServer::create_mcp_error_response(const std::string& id, int code, const std::string& message) {
+    return R"({"jsonrpc":"2.0","id":")" + id + R"(","error":{"code":)" + std::to_string(code) + R"(,"message":")" + message + R"("}})";
 }
 
 // Helper methods

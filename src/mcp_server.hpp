@@ -32,6 +32,12 @@ private:
     std::string create_success_response(const std::string& result);
     std::map<std::string, std::string> parse_json_params(const std::string& json);
     std::map<std::string, std::string> extract_mcp_params(const std::string& json);
+    
+    // MCP JSON-RPC 2.0 protocol methods
+    std::string handle_mcp_initialize(const std::string& id);
+    std::string handle_mcp_tools_list(const std::string& id);
+    std::string handle_mcp_tool_call(const std::string& id, const std::map<std::string, std::string>& request);
+    std::string create_mcp_error_response(const std::string& id, int code, const std::string& message);
 
 public:
     explicit MCPServer(HttpServer& server);

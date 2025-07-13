@@ -12,6 +12,37 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        packages.default = pkgs.stdenv.mkDerivation {
+          pname = "mychannel";
+          version = "0.1.0";
+          
+          src = ./.;
+          
+          nativeBuildInputs = [
+            pkgs.cmake
+          ];
+          
+          buildInputs = [
+            pkgs.gcc
+            pkgs.ffmpeg
+            pkgs.yt-dlp
+            pkgs.httplib
+          ];
+          
+          configurePhase = ''
+            cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+          '';
+          
+          buildPhase = ''
+            cmake --build build --config Release
+          '';
+          
+          installPhase = ''
+            mkdir -p $out/bin
+            cp build/mychannel $out/bin/
+          '';
+        };
+
         devShells.default = pkgs.mkShell {
           buildInputs = [
             pkgs.cmake
