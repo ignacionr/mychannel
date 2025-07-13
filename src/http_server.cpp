@@ -3,6 +3,8 @@
 #include <iostream>
 #include <future>
 #include <cstdlib>
+#include <filesystem>
+#include <string>
 
 HttpServer::HttpServer(ThreadSafeMediaQueue& queue) : media_queue_(queue) {
     // Read authentication token from environment variable
@@ -40,6 +42,50 @@ bool HttpServer::is_authenticated(const httplib::Request& req) const {
     }
     
     return false;
+}
+
+bool HttpServer::is_valid_media_item(const std::string& item, std::string& error_message) const {
+    // If it's a URL (starts with http:// or https://), assume it's valid
+    // The streaming component will handle URL validation
+    if (item.starts_with("http://") || item.starts_with("https://")) {
+        return true;
+    }
+    
+    // For local files, check if they exist
+    std::filesystem::path file_path(item);
+    
+    // Convert relative paths to absolute paths based on working directory
+    if (file_path.is_relative()) {
+        file_path = std::filesystem::current_path() / file_path;
+    }
+    
+    if (!std::filesystem::exists(file_path)) {
+        error_message = "File does not exist: " + file_path.string();
+        return false;
+    }
+    
+    if (!std::filesystem::is_regular_file(file_path)) {
+        error_message = "Path is not a regular file: " + file_path.string();
+        return false;
+    }
+    
+    // Check if file is readable
+    std::error_code ec;
+    auto perms = std::filesystem::status(file_path, ec).permissions();
+    if (ec) {
+        error_message = "Cannot check file permissions: " + ec.message();
+        return false;
+    }
+    
+    // Basic check for read permissions
+    if ((perms & std::filesystem::perms::owner_read) == std::filesystem::perms::none &&
+        (perms & std::filesystem::perms::group_read) == std::filesystem::perms::none &&
+        (perms & std::filesystem::perms::others_read) == std::filesystem::perms::none) {
+        error_message = "File is not readable: " + file_path.string();
+        return false;
+    }
+    
+    return true;
 }
 
 void HttpServer::setup_routes() {
@@ -96,6 +142,17 @@ void HttpServer::setup_routes() {
         if (req.has_param("url") || req.has_param("path")) {
             std::string item = req.has_param("url") ? req.get_param_value("url") : req.get_param_value("path");
             std::cout << "   ✅ Found parameter: " << item << std::endl;
+            
+            // Validate the media item before adding to queue
+            std::string validation_error;
+            if (!is_valid_media_item(item, validation_error)) {
+                std::cout << "   ❌ Validation failed: " << validation_error << std::endl;
+                res.status = 400;
+                res.set_content("{\"status\":\"error\",\"message\":\"" + validation_error + "\"}", "application/json");
+                return;
+            }
+            std::cout << "   ✅ Validation passed" << std::endl;
+            
             media_queue_.push(item);
             std::cout << "   ✅ Item added to queue: " << item << std::endl;
             res.set_content("{\"status\":\"success\",\"message\":\"Item added to queue\",\"item\":\"" + item + "\"}", "application/json");
@@ -116,6 +173,14 @@ void HttpServer::setup_routes() {
         
         if (req.has_param("url") || req.has_param("path")) {
             std::string item = req.has_param("url") ? req.get_param_value("url") : req.get_param_value("path");
+            
+            // Validate the media item before adding to queue
+            std::string validation_error;
+            if (!is_valid_media_item(item, validation_error)) {
+                res.status = 400;
+                res.set_content("{\"status\":\"error\",\"message\":\"" + validation_error + "\"}", "application/json");
+                return;
+            }
             
             // Add to front of queue
             media_queue_.push_front(item);
