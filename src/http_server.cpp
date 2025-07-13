@@ -70,17 +70,35 @@ void HttpServer::setup_routes() {
 
     // POST /queue/add - Add item to queue
     server_.Post("/queue/add", [this](const httplib::Request& req, httplib::Response& res) {
+        std::cout << "🔍 DEBUG: POST /queue/add request received" << std::endl;
+        std::cout << "   Method: " << req.method << std::endl;
+        std::cout << "   Path: " << req.path << std::endl;
+        std::cout << "   Query params count: " << req.params.size() << std::endl;
+        for (const auto& param : req.params) {
+            std::cout << "   Query param: " << param.first << " = " << param.second << std::endl;
+        }
+        std::cout << "   Headers count: " << req.headers.size() << std::endl;
+        for (const auto& header : req.headers) {
+            std::cout << "   Header: " << header.first << " = " << header.second << std::endl;
+        }
+        std::cout << "   Body: " << req.body << std::endl;
+        
         if (!is_authenticated(req)) {
+            std::cout << "   ❌ Authentication failed" << std::endl;
             res.status = 401;
             res.set_content("{\"status\":\"error\",\"message\":\"Authentication required\"}", "application/json");
             return;
         }
+        std::cout << "   ✅ Authentication passed" << std::endl;
         
         if (req.has_param("url") || req.has_param("path")) {
             std::string item = req.has_param("url") ? req.get_param_value("url") : req.get_param_value("path");
+            std::cout << "   ✅ Found parameter: " << item << std::endl;
             media_queue_.push(item);
+            std::cout << "   ✅ Item added to queue: " << item << std::endl;
             res.set_content("{\"status\":\"success\",\"message\":\"Item added to queue\",\"item\":\"" + item + "\"}", "application/json");
         } else {
+            std::cout << "   ❌ No url or path parameter found" << std::endl;
             res.status = 400;
             res.set_content("{\"status\":\"error\",\"message\":\"Missing url or path parameter\"}", "application/json");
         }
