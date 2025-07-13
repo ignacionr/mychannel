@@ -1,0 +1,107 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug MyChannel",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/mychannel",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "YOUTUBE_RTMP_URL",
+                    "value": "${env:YOUTUBE_RTMP_URL}"
+                },
+                {
+                    "name": "YOUTUBE_STREAM_KEY",
+                    "value": "${env:YOUTUBE_STREAM_KEY}"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: Build",
+            "logging": {
+                "engineLogging": false,
+                "moduleLoad": false,
+                "programOutput": true,
+                "trace": false
+            }
+        },
+        {
+            "name": "Debug MyChannel (Nix Environment)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/env",
+            "args": [
+                "nix", "develop", "-c", "lldb", "--", "${workspaceFolder}/build/mychannel"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "YOUTUBE_RTMP_URL",
+                    "value": "${env:YOUTUBE_RTMP_URL}"
+                },
+                {
+                    "name": "YOUTUBE_STREAM_KEY",
+                    "value": "${env:YOUTUBE_STREAM_KEY}"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: Build"
+        },
+        {
+            "name": "Debug MyChannel (with test env)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/mychannel",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "YOUTUBE_RTMP_URL",
+                    "value": "rtmp://test.example.com/live"
+                },
+                {
+                    "name": "YOUTUBE_STREAM_KEY",
+                    "value": "test_stream_key"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: Build",
+            "logging": {
+                "engineLogging": false,
+                "moduleLoad": false,
+                "programOutput": true,
+                "trace": false
+            }
+        },
+        {
+            "name": "Run MyChannel (No Debug)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/mychannel",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "YOUTUBE_RTMP_URL",
+                    "value": "${env:YOUTUBE_RTMP_URL}"
+                },
+                {
+                    "name": "YOUTUBE_STREAM_KEY",
+                    "value": "${env:YOUTUBE_STREAM_KEY}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: Build"
+        }
+    ]
+}

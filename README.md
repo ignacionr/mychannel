@@ -1,4 +1,78 @@
-# MyChannel - Continuous Video Streaming System
+# MyChannel - Live Streaming Queue Manager
+
+A C++ application for managing and streaming video content to YouTube Live with an HTTP API for dynamic queue management.
+
+## 🏗️ Architecture
+
+The project follows a modular design with single responsibilities:
+
+### Core Components
+
+- **`main.cpp`** (67 lines) - Application orchestration and main streaming loop
+- **`utils.hpp/cpp`** (35 lines) - Shell command execution and URL validation utilities  
+- **`media_queue.hpp/cpp`** (65 lines) - Thread-safe queue for media management
+- **`media_info.hpp/cpp`** (55 lines) - Media duration detection (local files + YouTube)
+- **`streaming.hpp/cpp`** (45 lines) - Asynchronous YouTube streaming functionality
+- **`http_server.hpp/cpp`** (85 lines) - HTTP API server with CORS support
+
+### Features
+
+✅ **Async Streaming** - Non-blocking YouTube Live streaming  
+✅ **YouTube URL Support** - Direct streaming from YouTube videos using yt-dlp  
+✅ **HTTP API** - RESTful endpoints for queue management  
+✅ **Thread Safety** - Concurrent access to media queue  
+✅ **CORS Enabled** - Web client compatibility  
+✅ **Fallback Content** - Automatically plays `videos/News_Intro.mp4` when queue is empty  
+
+## 🚀 Quick Start
+
+```bash
+# Build
+nix develop -c cmake -B build -S .
+nix develop -c cmake --build build --config Debug
+
+# Run
+nix develop -c ./build/mychannel
+```
+
+## 📡 HTTP API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/status` | Server health check |
+| `GET` | `/queue` | Get current queue contents |
+| `POST` | `/queue/add?url=<youtube_url>` | Add YouTube video |
+| `POST` | `/queue/add?path=<file_path>` | Add local file |
+| `POST` | `/queue/clear` | Clear entire queue |
+
+## 🌐 Web Interface
+
+Open `test_client.html` in your browser for a user-friendly queue management interface.
+
+## 🔧 Environment Variables
+
+```bash
+export YOUTUBE_RTMP_URL="rtmp://a.rtmp.youtube.com/live2"
+export YOUTUBE_STREAM_KEY="your-stream-key-here"
+```
+
+## 📺 Fallback Content
+
+When the queue is empty, the application automatically plays `videos/News_Intro.mp4`. Make sure this file exists in your videos directory. If the queue has content, it will continuously loop through the queued items.
+
+## 📁 Project Structure
+
+```
+src/
+├── main.cpp           # Main application orchestration
+├── utils.hpp/cpp      # Command execution & URL utilities
+├── media_queue.hpp/cpp # Thread-safe media queue
+├── media_info.hpp/cpp # Duration detection (ffprobe/yt-dlp)
+├── streaming.hpp/cpp  # Async YouTube streaming (ffmpeg)
+└── http_server.hpp/cpp # HTTP API server (httplib)
+```
+
+Each module is focused on a single responsibility and kept under 100 lines for maintainability.
 
 A C++ application that creates a continuous live streaming channel by cycling through a playlist of videos and streaming them to YouTube Live in a loop.
 

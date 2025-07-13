@@ -18,6 +18,7 @@
             pkgs.gcc
             pkgs.ffmpeg
             pkgs.yt-dlp
+            pkgs.httplib
           ];
           shellHook = ''
             # Only set these if they're not already defined

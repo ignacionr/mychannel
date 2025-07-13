@@ -1,0 +1,208 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: Configure",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "cmake",
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Configure the project using CMake in Nix environment"
+        },
+        {
+            "label": "CMake: Build",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "cmake",
+                "--build",
+                "build",
+                "--config",
+                "Debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build the project using CMake in Nix environment",
+            "dependsOn": "CMake: Configure"
+        },
+        {
+            "label": "CMake: Build Debug",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "sh",
+                "-c",
+                "cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build the project with debug symbols in Nix environment"
+        },
+        {
+            "label": "CMake: Clean",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "cmake",
+                "--build",
+                "build",
+                "--target",
+                "clean"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Clean the build directory in Nix environment"
+        },
+        {
+            "label": "Run MyChannel",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "./build/mychannel"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Run the mychannel application in Nix environment",
+            "dependsOn": "CMake: Build"
+        },
+        {
+            "label": "Build and Run",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: Build",
+                "Run MyChannel"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Build and then run the mychannel application"
+        },
+        {
+            "label": "Check Environment Variables",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "bash",
+                "-c",
+                "echo 'YOUTUBE_RTMP_URL: '$YOUTUBE_RTMP_URL && echo 'YOUTUBE_STREAM_KEY: '${YOUTUBE_STREAM_KEY:0:10}..."
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Check if required environment variables are set in Nix environment"
+        },
+        {
+            "label": "Check Video Files",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "ls",
+                "-la",
+                "videos/"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "List video files in the videos directory"
+        },
+        {
+            "label": "Test Video Duration",
+            "type": "shell",
+            "command": "nix",
+            "args": [
+                "develop",
+                "-c",
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                "videos/video1_5s.webm"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Test ffprobe functionality with a sample video in Nix environment"
+        }
+    ]
+}
