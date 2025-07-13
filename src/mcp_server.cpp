@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <glaze/glaze.hpp>
 
 MCPServer::MCPServer(HttpServer& server) : http_server_(server) {
     // Initialize available MCP tools with simpler JSON schemas
@@ -60,11 +61,31 @@ void MCPServer::setup_mcp_routes() {
         res.set_header("Content-Type", "application/json");
         
         try {
-            // Parse JSON-RPC request
-            auto json_request = parse_json_params(req.body);
+            // Parse JSON-RPC request with Glaze
+            glz::json_t json_request;
+            auto parse_error = glz::read_json(json_request, req.body);
             
-            std::string method = json_request["method"];
-            std::string id = json_request["id"];
+            if (parse_error) {
+                std::string error_response = create_mcp_error_response("null", -32700, "Parse error");
+                res.set_content(error_response, "application/json");
+                return;
+            }
+            
+            // Extract method and id from JSON
+            std::string method;
+            std::string id;
+            
+            if (json_request.contains("method") && json_request["method"].is_string()) {
+                method = json_request["method"].get_string();
+            }
+            
+            if (json_request.contains("id")) {
+                if (json_request["id"].is_string()) {
+                    id = json_request["id"].get_string();
+                } else if (json_request["id"].is_number()) {
+                    id = std::to_string(json_request["id"].get_number());
+                }
+            }
             
             std::string response;
             
@@ -104,9 +125,13 @@ void MCPServer::setup_mcp_routes() {
             return;
         }
         
-        // Parse the main request body
-        auto main_params = parse_json_params(req.body);
-        auto tool_name = main_params["tool"];
+        // Parse the main request body with Glaze
+        auto main_json = parse_json(req.body);
+        std::string tool_name;
+        
+        if (main_json.contains("tool") && main_json["tool"].is_string()) {
+            tool_name = main_json["tool"].get_string();
+        }
         
         // For parameters, we need to extract the params object from the JSON
         // This is a simplified approach - extract parameters from the main JSON
@@ -341,35 +366,60 @@ std::string MCPServer::handle_mcp_tools_list(const std::string& id) {
     return oss.str();
 }
 
-std::string MCPServer::handle_mcp_tool_call(const std::string& id, const std::map<std::string, std::string>& request) {
-    // Extract tool name and arguments from MCP request
-    std::string tool_name = request.at("params.name");
-    std::string params_json = request.at("params.arguments");
-    
-    std::string result;
-    
-    // Route to appropriate tool handler
-    if (tool_name == "add_video_to_queue") {
-        result = handle_add_video_to_queue(params_json);
-    } else if (tool_name == "add_priority_video") {
-        result = handle_add_priority_video(params_json);
-    } else if (tool_name == "get_streaming_queue") {
-        result = handle_get_streaming_queue(params_json);
-    } else if (tool_name == "clear_streaming_queue") {
-        result = handle_clear_streaming_queue(params_json);
-    } else if (tool_name == "get_stream_status") {
-        result = handle_get_stream_status(params_json);
-    } else if (tool_name == "interrupt_current_stream") {
-        result = handle_interrupt_current_stream(params_json);
-    } else if (tool_name == "get_video_duration") {
-        result = handle_get_video_duration(params_json);
-    } else if (tool_name == "validate_video_source") {
-        result = handle_validate_video_source(params_json);
-    } else {
-        return create_mcp_error_response(id, -32601, "Tool not found: " + tool_name);
+std::string MCPServer::handle_mcp_tool_call(const std::string& id, const glz::json_t& request) {
+    try {
+        // Extract tool name and arguments from MCP request
+        std::string tool_name;
+        std::string params_json;
+        
+        // Navigate to params.name
+        if (request.contains("params") && request["params"].is_object()) {
+            const auto& params = request["params"].get_object();
+            
+            if (params.contains("name") && params.at("name").is_string()) {
+                tool_name = params.at("name").get_string();
+            }
+            
+            if (params.contains("arguments") && params.at("arguments").is_object()) {
+                // Convert arguments object back to JSON string for tool handlers
+                auto arguments_dump = params.at("arguments").dump();
+                if (arguments_dump) {
+                    params_json = *arguments_dump;
+                }
+            }
+        }
+        
+        if (tool_name.empty()) {
+            return create_mcp_error_response(id, -32602, "Invalid params: missing tool name");
+        }
+        
+        std::string result;
+        
+        // Route to appropriate tool handler
+        if (tool_name == "add_video_to_queue") {
+            result = handle_add_video_to_queue(params_json);
+        } else if (tool_name == "add_priority_video") {
+            result = handle_add_priority_video(params_json);
+        } else if (tool_name == "get_streaming_queue") {
+            result = handle_get_streaming_queue(params_json);
+        } else if (tool_name == "clear_streaming_queue") {
+            result = handle_clear_streaming_queue(params_json);
+        } else if (tool_name == "get_stream_status") {
+            result = handle_get_stream_status(params_json);
+        } else if (tool_name == "interrupt_current_stream") {
+            result = handle_interrupt_current_stream(params_json);
+        } else if (tool_name == "get_video_duration") {
+            result = handle_get_video_duration(params_json);
+        } else if (tool_name == "validate_video_source") {
+            result = handle_validate_video_source(params_json);
+        } else {
+            return create_mcp_error_response(id, -32601, "Tool not found: " + tool_name);
+        }
+        
+        return R"({"jsonrpc":"2.0","id":")" + id + R"(","result":{"content":[{"type":"text","text":)" + result + "}]}}";
+    } catch (const std::exception& e) {
+        return create_mcp_error_response(id, -32602, "Invalid params: " + std::string(e.what()));
     }
-    
-    return R"({"jsonrpc":"2.0","id":")" + id + R"(","result":{"content":[{"type":"text","text":)" + result + "}]}}";
 }
 
 std::string MCPServer::create_mcp_error_response(const std::string& id, int code, const std::string& message) {
@@ -385,48 +435,12 @@ std::string MCPServer::create_success_response(const std::string& result) {
     return "{\"status\":\"success\",\"result\":" + result + "}";
 }
 
-std::map<std::string, std::string> MCPServer::parse_json_params(const std::string& json) {
-    std::map<std::string, std::string> result;
-    
-    // Handle empty or simple cases
-    if (json.empty() || json == "{}") {
-        return result;
+glz::json_t MCPServer::parse_json(const std::string& json) {
+    glz::json_t result;
+    auto parse_error = glz::read_json(result, json);
+    if (parse_error) {
+        throw std::runtime_error("JSON parse error");
     }
-    
-    // Simple key-value extraction for basic JSON
-    // This handles: {"key":"value","key2":"value2"}
-    size_t pos = 0;
-    while (pos < json.length()) {
-        // Find key start
-        size_t key_start = json.find('"', pos);
-        if (key_start == std::string::npos) break;
-        key_start++;
-        
-        // Find key end
-        size_t key_end = json.find('"', key_start);
-        if (key_end == std::string::npos) break;
-        
-        std::string key = json.substr(key_start, key_end - key_start);
-        
-        // Find colon
-        size_t colon = json.find(':', key_end);
-        if (colon == std::string::npos) break;
-        
-        // Find value start
-        size_t value_start = json.find('"', colon);
-        if (value_start == std::string::npos) break;
-        value_start++;
-        
-        // Find value end
-        size_t value_end = json.find('"', value_start);
-        if (value_end == std::string::npos) break;
-        
-        std::string value = json.substr(value_start, value_end - value_start);
-        
-        result[key] = value;
-        pos = value_end + 1;
-    }
-    
     return result;
 }
 
@@ -434,40 +448,25 @@ std::map<std::string, std::string> MCPServer::parse_json_params(const std::strin
 std::map<std::string, std::string> MCPServer::extract_mcp_params(const std::string& json) {
     std::map<std::string, std::string> result;
     
-    // Look for "params":{ ... } structure
-    size_t params_start = json.find("\"params\"");
-    if (params_start == std::string::npos) {
-        return result;
-    }
-    
-    // Find the opening brace after "params":
-    size_t brace_start = json.find('{', params_start);
-    if (brace_start == std::string::npos) {
-        return result;
-    }
-    
-    // Find the matching closing brace
-    int brace_count = 1;
-    size_t pos = brace_start + 1;
-    size_t brace_end = std::string::npos;
-    
-    while (pos < json.length() && brace_count > 0) {
-        if (json[pos] == '{') {
-            brace_count++;
-        } else if (json[pos] == '}') {
-            brace_count--;
-            if (brace_count == 0) {
-                brace_end = pos;
-                break;
+    try {
+        auto json_obj = parse_json(json);
+        
+        if (json_obj.contains("params") && json_obj["params"].is_object()) {
+            const auto& params = json_obj["params"].get_object();
+            
+            // Extract string parameters
+            for (const auto& [key, value] : params) {
+                if (value.is_string()) {
+                    result[key] = value.get_string();
+                } else if (value.is_number()) {
+                    result[key] = std::to_string(value.get_number());
+                } else if (value.is_boolean()) {
+                    result[key] = value.get<bool>() ? "true" : "false";
+                }
             }
         }
-        pos++;
-    }
-    
-    if (brace_end != std::string::npos) {
-        // Extract the params object content
-        std::string params_content = json.substr(brace_start, brace_end - brace_start + 1);
-        result = parse_json_params(params_content);
+    } catch (const std::exception&) {
+        // Return empty result on parse error
     }
     
     return result;

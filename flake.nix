@@ -27,6 +27,7 @@
             pkgs.ffmpeg
             pkgs.yt-dlp
             pkgs.httplib
+            pkgs.glaze
           ];
           
           configurePhase = ''
@@ -50,6 +51,7 @@
             pkgs.ffmpeg
             pkgs.yt-dlp
             pkgs.httplib
+            pkgs.glaze
           ];
           shellHook = ''
             # Only set these if they're not already defined
