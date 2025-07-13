@@ -58,6 +58,7 @@ void HttpServer::setup_routes() {
 
     // GET /queue - Get current queue status
     server_.Get("/queue", [this](const httplib::Request&, httplib::Response& res) {
+        std::cout << "🔍 DEBUG: GET /queue request received" << std::endl;
         auto items = media_queue_.get_all_items();
         std::string json_response = "{\"queue\":[";
         for (size_t i = 0; i < items.size(); ++i) {
@@ -65,6 +66,7 @@ void HttpServer::setup_routes() {
             if (i < items.size() - 1) json_response += ",";
         }
         json_response += "],\"size\":" + std::to_string(items.size()) + "}";
+        std::cout << "🔍 DEBUG: Returning queue with " << items.size() << " items" << std::endl;
         res.set_content(json_response, "application/json");
     });
 
