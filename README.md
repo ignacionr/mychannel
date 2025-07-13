@@ -26,6 +26,22 @@ The project follows a modular design with single responsibilities:
 ✅ **Thread Safety** - Concurrent access to media queue  
 ✅ **CORS Enabled** - Web client compatibility  
 ✅ **Fallback Content** - Automatically plays `videos/News_Intro.mp4` when queue is empty  
+✅ **MCP Server** - Model Context Protocol support for LLM integration  
+
+## 🤖 MCP (Model Context Protocol) Support
+
+MyChannel now includes full MCP server capabilities, allowing LLMs to programmatically control streaming operations:
+
+- **8 MCP Tools** for queue management, stream control, and media analysis
+- **No Additional Dependencies** - uses existing HTTP server infrastructure  
+- **Authentication** - secure token-based access control
+- **Real-time Control** - interrupt streams, manage queues, validate content
+
+**MCP Endpoints:**
+- `GET /mcp/tools` - Discover available tools
+- `POST /mcp/call` - Execute MCP tools with JSON parameters
+
+See **[MCP_README.md](./MCP_README.md)** for complete MCP documentation and usage examples.  
 
 ## 🚀 Quick Start
 

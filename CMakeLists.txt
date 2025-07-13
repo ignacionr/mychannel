@@ -23,6 +23,7 @@ set(SOURCES
     src/media_info.cpp
     src/streaming.cpp
     src/http_server.cpp
+    src/mcp_server.cpp
 )
 
 add_executable(mychannel ${SOURCES})

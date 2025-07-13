@@ -8,6 +8,7 @@
 #include "media_info.hpp"
 #include "streaming.hpp"
 #include "http_server.hpp"
+#include "mcp_server.hpp"
 #include "utils.hpp"
 
 int main() {
@@ -26,8 +27,9 @@ int main() {
     ThreadSafeMediaQueue media_queue;
     // media_queue.push("https://www.youtube.com/watch?v=gCNeDWCI0vo");
 
-    // Start HTTP server
+    // Start HTTP server with MCP support
     HttpServer http_server(media_queue);
+    MCPServer mcp_server(http_server);
     auto server_future = http_server.start_async();
 
     std::future<void> current_push_future;
